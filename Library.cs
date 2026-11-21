@@ -1,3 +1,5 @@
+using Newtonsoft.Json;
+
 public class Library
 {
     public string Name { get; set; }
@@ -20,6 +22,64 @@ public class Library
     {
         Books.Add(book);
         Console.WriteLine($"Added '{book.Title}' to {Name}");
+    }
+    
+    public void SaveToFile(string filename)
+    {
+        try
+        {
+            //Convert library to JSON text
+            string json = JsonConvert.SerializeObject(this, Formatting.Indented);
+
+            //Write to file
+            File.WriteAllText(filename, json);
+
+            Console.WriteLine($"Library saved to {filename}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error saving: {ex.Message}");
+        }
+    }
+
+    public void SaveWithBackup(string filename)
+    {
+        try
+        {
+            //Make backup of existing file
+            if (File.Exists(filename))
+            {
+                string backupName = filename + ".backup";
+                File.Copy(filename, backupName, overwrite: true);
+                Console.WriteLine($"Backup created: {backupName}");
+            }
+
+            //Save new version
+            SaveToFile(filename);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error during backup: {ex.Message}");
+        }
+    }
+
+    public static Library LoadFromFile(string filename)
+    {
+        //Check if file exists
+        if (!File.Exists(filename))
+        {
+            Console.WriteLine("No saved data found. Starting fresh...");
+            return new Library("My Library");
+        }
+        
+        //Read file content
+        string json = File.ReadAllText(filename);
+        
+        //Convert JSON back to Library
+        Library library = JsonConvert.DeserializeObject<Library>(json);
+
+        Console.WriteLine($"Loaded {library.BookCount} books from {filename}");
+        return library;
     }
 
     public bool RemoveBook(string title)
@@ -67,5 +127,19 @@ public class Library
             string status = book.IsCheckedOut ? "[CHECKED OUT]" : "[AVAILABLE]";
             Console.WriteLine($"  {status} {book.DisplayInfo}");
         }
+    }
+
+    public void ExportToCsv(string filename)
+    {
+        var lines = new List<string>();
+        lines.Add("Title,Author,PageCount,IsCheckedOut");
+
+        foreach (Book book in Books)
+        {
+            lines.Add($"\"{book.Title}\",\"{book.Author}\", {book.PageCount}, {book.IsCheckedOut}");
+        }
+
+        File.WriteAllLines(filename, lines);
+        Console.WriteLine($"Exported to {filename}");
     }
 }
